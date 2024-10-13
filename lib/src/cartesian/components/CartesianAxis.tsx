@@ -7,7 +7,8 @@ import {
   vec,
   type Color,
 } from "@shopify/react-native-skia";
-import { StyleSheet } from "react-native";
+import { StyleSheet, View } from "react-native";
+import { getFontGlyphWidth } from "../../utils/getFontGlyphWidth";
 import type {
   ValueOf,
   NumericalFields,
@@ -38,6 +39,7 @@ export const CartesianAxis = <
   font,
   isNumericalData = false,
   ix = [],
+  isYAxisFloating = false,
 }: AxisProps<RawData, XK, YK>) => {
   const axisConfiguration = useMemo(() => {
     return {
@@ -117,10 +119,7 @@ export const CartesianAxis = <
 
   const yAxisNodes = yTicksNormalized.map((tick) => {
     const contentY = formatYLabel(tick as never);
-    const labelWidth =
-      font
-        ?.getGlyphWidths?.(font.getGlyphIDs(contentY))
-        .reduce((sum, value) => sum + value, 0) ?? 0;
+    const labelWidth = getFontGlyphWidth(contentY, font);
     const labelY = yScale(tick) + fontSize / 3;
     const labelX = (() => {
       // left, outset
@@ -169,10 +168,7 @@ export const CartesianAxis = <
   const xAxisNodes = xTicksNormalized.map((tick) => {
     const val = isNumericalData ? tick : ix[tick];
     const contentX = formatXLabel(val as never);
-    const labelWidth =
-      font
-        ?.getGlyphWidths?.(font.getGlyphIDs(contentX))
-        .reduce((sum, value) => sum + value, 0) ?? 0;
+    const labelWidth = getFontGlyphWidth(contentX, font);
     const labelX = xScale(tick) - (labelWidth ?? 0) / 2;
     const canFitLabelContent =
       yAxisPosition === "left" ? labelX + labelWidth < x2r : x1r < labelX;
@@ -229,18 +225,33 @@ export const CartesianAxis = <
     return framePath;
   }, [x1, x2, xScale, y1, y2, yScale]);
 
-  return (
-    <>
-      {xTicks > 0 ? xAxisNodes : null}
-      {yTicks > 0 ? yAxisNodes : null}
-      <Path
-        path={boundingFrame}
-        strokeWidth={gridFrameLineWidth}
-        style="stroke"
-        color={gridFrameLineColor}
-      />
-    </>
-  );
+  if (isYAxisFloating) {
+    return (
+      <View>
+        <View>{yTicks > 0 ? yAxisNodes : null}</View>
+        {xTicks > 0 ? xAxisNodes : null}
+        <Path
+          path={boundingFrame}
+          strokeWidth={gridFrameLineWidth}
+          style="stroke"
+          color={gridFrameLineColor}
+        />
+      </View>
+    );
+  } else {
+    return (
+      <>
+        {xTicks > 0 ? xAxisNodes : null}
+        {yTicks > 0 ? yAxisNodes : null}
+        <Path
+          path={boundingFrame}
+          strokeWidth={gridFrameLineWidth}
+          style="stroke"
+          color={gridFrameLineColor}
+        />
+      </>
+    );
+  }
 };
 
 export const CartesianAxisDefaultProps = {
